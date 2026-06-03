@@ -285,9 +285,6 @@ function render(){ try {
   window._revDeals = revDeals;
   window._totalRev = totalRev;
 
-  // KPIs — render based on range
-  updateKPIs(window._activeRange || 30);
-
   // All-platform reach estimates by month (IG + FB + TT + YT + LI)
   const allPlatReach = [
     567988+27818+48780+39198+166,     // Mar
@@ -331,6 +328,7 @@ function render(){ try {
     ].map(k=>`<div class="kpi"><div class="kpi-label">${k.l}</div><div class="kpi-val">${k.v}</div><div class="kpi-sub">${k.s}</div></div>`).join('');
   }
   window.updateKPIs = updateKPIs;
+  updateKPIs(window._activeRange || 30);
 
   // Charts config helper
   const gridOpts={color:'#222'};const noGrid={display:false};
