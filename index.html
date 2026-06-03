@@ -68,6 +68,9 @@ tr:hover td{background:rgba(239,191,4,.03)}
 .prog-bar{height:6px;background:var(--card2);border-radius:3px;overflow:hidden}
 .prog-fill{height:100%;border-radius:3px;background:var(--accent);transition:width .5s}
 
+.range-btn{padding:6px 16px;border-radius:6px;font-size:10px;font-weight:700;cursor:pointer;border:1px solid var(--border);background:transparent;color:var(--gray);font-family:'Inter',sans-serif;letter-spacing:.8px;transition:all .2s}
+.range-btn.active{background:var(--accent);color:#000;border-color:var(--accent)}
+.range-btn:hover:not(.active){background:var(--card2);color:var(--white)}
 .data-source{font-size:9px;color:#444;text-align:center;margin-top:24px;padding:10px;letter-spacing:.5px}
 
 @media(max-width:700px){.kpi-row{grid-template-columns:repeat(2,1fr)}.g2,.g3{grid-template-columns:1fr}.funnel{flex-wrap:wrap}.funnel-arrow{display:none}.tabs{flex-wrap:wrap}.mini-grid{grid-template-columns:repeat(2,1fr)}}
@@ -77,8 +80,8 @@ tr:hover td{background:rgba(239,191,4,.03)}
 
 <div class="header">
   <div>
-    <h1>MARCEL GIANNATTASIO</h1>
-    <div class="header-sub">@marcelgiannattasio | Managed by ScaleHaven</div>
+    <h1>LEGACY TRANSFER</h1>
+    <div class="header-sub">@marcelgiannattasio | Marcel Giannattasio</div>
   </div>
   <span class="badge loading" id="statusBadge">LOADING...</span>
 </div>
@@ -92,19 +95,21 @@ tr:hover td{background:rgba(239,191,4,.03)}
 </div>
 
 <div id="overview" class="tab-content active">
-  <div class="kpi-row" id="kpiRow"></div>
-  <div class="g2">
-    <div class="section"><h2>Activity by Month</h2><div class="chart-box"><canvas id="impChart"></canvas></div></div>
-    <div class="section"><h2>Results by Month</h2><div class="chart-box"><canvas id="followChart"></canvas></div></div>
+  <div style="display:flex;gap:4px;margin-bottom:16px;align-items:center">
+    <button class="range-btn active" onclick="setRange(30,this)">30 DAYS</button>
+    <button class="range-btn" onclick="setRange(60,this)">60 DAYS</button>
+    <button class="range-btn" onclick="setRange(90,this)">90 DAYS</button>
+    <span style="margin-left:auto;font-size:11px;color:var(--gray);letter-spacing:.5px" id="dateRangeLabel"></span>
   </div>
-  <div class="section"><h2>Platform Breakdown</h2><div class="g3" id="platformCards"></div></div>
+  <div class="kpi-row" id="kpiRow"></div>
+  <div class="section"><h2>Monthly Performance</h2><div class="chart-box" style="height:280px"><canvas id="comboChart"></canvas></div></div>
+  <div class="section"><h2>Platform Breakdown</h2><div style="display:grid;grid-template-columns:repeat(5,1fr);gap:8px" id="platformCards"></div></div>
 </div>
 
 <div id="funnel" class="tab-content">
   <div class="section"><h2>Profile Funnel — Monthly</h2><div class="chart-box"><canvas id="funnelChart"></canvas></div></div>
+  <div class="section"><h2>Call Source Breakdown</h2><div class="g2"><div class="chart-box chart-sm"><canvas id="callSourceChart"></canvas></div><div id="callSourceTable"></div></div></div>
   <div class="section"><h2>Latest Month</h2><div class="funnel" id="funnelViz"></div></div>
-  <div class="section"><h2>Conversion Rates</h2><div class="chart-box"><canvas id="rateChart"></canvas></div></div>
-  <div class="section"><h2>$50K/Mo Target</h2><div class="g2" id="targetGrid"></div></div>
 </div>
 
 <div id="content" class="tab-content">
@@ -160,7 +165,7 @@ function parseCSV(text) {
   if(cell||row.length){row.push(cell.trim());rows.push(row)} return rows;
 }
 
-async function fetchSheet(id,tab){try{const r=await fetch(sheetUrl(id,tab));if(!r.ok)throw 0;return parseCSV(await r.text())}catch(e){return null}}
+async function fetchSheet(id,tab){try{const ctrl=new AbortController();const t=setTimeout(()=>ctrl.abort(),3000);const r=await fetch(sheetUrl(id,tab),{signal:ctrl.signal});clearTimeout(t);if(!r.ok)throw 0;return parseCSV(await r.text())}catch(e){return null}}
 
 const FALLBACK={
   funnel:[
@@ -191,52 +196,69 @@ const FALLBACK={
 
 let liveData={funnel:null,crm:null,igWeekly:null,trialReels:null,stories:null};
 
-async function loadData(){
-  const badge=document.getElementById('statusBadge');
-  const [funnelData,crmData,igData,trialData,storyData]=await Promise.all([
-    fetchSheet(CRM_ID,'Profile Funnel Tracker'),fetchSheet(CRM_ID,'CRM'),
-    fetchSheet(DATA_ID,'Instagram'),fetchSheet(DATA_ID,'Trial Reel Tracker'),fetchSheet(DATA_ID,'Story Sequence Tracker')]);
-
-  if(funnelData&&funnelData.length>2){liveData.funnel=[];
-    for(let i=1;i<funnelData.length;i++){const r=funnelData[i];if(!r[0]||r[0].includes('#DIV'))continue;
-      const dms=parseInt((r[2]||'').replace(/,/g,''))||0,warm=parseInt((r[3]||'').replace(/,/g,''))||0,
-      flipRate=parseFloat(r[4])||0,booked=parseInt((r[5]||'').replace(/,/g,''))||0,bookRate=parseFloat(r[6])||0,
-      shows=parseInt((r[7]||'').replace(/,/g,''))||0,showRate=parseFloat(r[8])||0,
-      closed=parseInt((r[9]||'').replace(/,/g,''))||0,closeRate=parseFloat(r[10])||0;
-      if(dms>0||warm>0||booked>0)liveData.funnel.push({month:r[0],dms,warm,flipRate,booked,bookRate,shows,showRate,closed,closeRate})}
-    if(!liveData.funnel.length)liveData.funnel=null}
-
-  if(crmData&&crmData.length>3){liveData.crm=[];
-    for(let i=2;i<crmData.length;i++){const r=crmData[i];if(!r[1]||r[1]==='Contact Name')continue;
-      liveData.crm.push({plat:r[0]||'-',name:r[1]||'-',status:r[6]||'-',icp:(r[11]||'').substring(0,30),rev:r[10]||'-',paying:r[10]||''})}
-    if(!liveData.crm.length)liveData.crm=null}
-
-  if(igData&&igData.length>3){liveData.igWeekly={reach:[],followers:[],leads:[],weeks:[]};
-    let cw='',wr=0,wf=0,wl=0;
-    for(let i=2;i<igData.length;i++){const r=igData[i],week=r[0];
-      if(week&&week.startsWith('Week')){if(cw){liveData.igWeekly.weeks.push(cw);liveData.igWeekly.reach.push(wr);liveData.igWeekly.followers.push(wf);liveData.igWeekly.leads.push(wl)}cw=week;wr=0;wf=0;wl=0}
-      wr+=parseInt((r[4]||'').replace(/,/g,''))||0;wf+=parseInt((r[16]||'').replace(/,/g,''))||0;wl+=parseInt((r[8]||'').replace(/,/g,''))||0}
-    if(cw){liveData.igWeekly.weeks.push(cw);liveData.igWeekly.reach.push(wr);liveData.igWeekly.followers.push(wf);liveData.igWeekly.leads.push(wl)}
-    if(!liveData.igWeekly.weeks.length)liveData.igWeekly=null}
-
-  if(trialData&&trialData.length>3){let dd=0,rj=0;
-    for(let i=2;i<trialData.length;i++){const s=(trialData[i][15]||'').toLowerCase();if(s.includes('double'))dd++;else if(s.includes('reject'))rj++}
-    if(dd+rj>0)liveData.trialReels={doubleDown:dd,rejected:rj}}
-
-  if(storyData&&storyData.length>3){liveData.stories={};
-    for(let i=2;i<storyData.length;i++){const t=storyData[i][2]||'';if(!t)continue;
-      if(!liveData.stories[t])liveData.stories[t]={count:0,leads:0,compSum:0};
-      liveData.stories[t].count++;liveData.stories[t].leads+=parseInt(storyData[i][8]||'0')||0;liveData.stories[t].compSum+=parseFloat(storyData[i][7]||'0')||0}}
-
-  const live=!!(liveData.funnel||liveData.crm||liveData.igWeekly);
+function loadData(){
+  // RENDER IMMEDIATELY with cached data so numbers always show
   const now=new Date().toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'});
-  badge.textContent=live?`LIVE — ${now}`:`CACHED — ${now}`;
-  badge.className=live?'badge live':'badge';
-  document.getElementById('dataSource').textContent=live?`Live from Google Sheets | ${new Date().toLocaleTimeString()}`:'Using cached data — ensure sheets are shared as "Anyone with link"';
+  document.getElementById('statusBadge').textContent=`CACHED — ${now}`;
+  document.getElementById('statusBadge').className='badge';
+  document.getElementById('dataSource').textContent='Using cached data';
   render();
+
+  // Then try live data in background — if it works, re-render with fresh numbers
+  tryLiveData();
 }
 
-function render(){
+async function tryLiveData(){
+  try {
+    const [funnelData,crmData,igData,trialData,storyData]=await Promise.all([
+      fetchSheet(CRM_ID,'Profile Funnel Tracker'),fetchSheet(CRM_ID,'CRM'),
+      fetchSheet(DATA_ID,'Instagram'),fetchSheet(DATA_ID,'Trial Reel Tracker'),fetchSheet(DATA_ID,'Story Sequence Tracker')]);
+
+    if(funnelData&&funnelData.length>2){liveData.funnel=[];
+      for(let i=1;i<funnelData.length;i++){const r=funnelData[i];if(!r[0]||r[0].includes('#DIV'))continue;
+        const dms=parseInt((r[2]||'').replace(/,/g,''))||0,warm=parseInt((r[3]||'').replace(/,/g,''))||0,
+        flipRate=parseFloat(r[4])||0,booked=parseInt((r[5]||'').replace(/,/g,''))||0,bookRate=parseFloat(r[6])||0,
+        shows=parseInt((r[7]||'').replace(/,/g,''))||0,showRate=parseFloat(r[8])||0,
+        closed=parseInt((r[9]||'').replace(/,/g,''))||0,closeRate=parseFloat(r[10])||0;
+        if(dms>0||warm>0||booked>0)liveData.funnel.push({month:r[0],dms,warm,flipRate,booked,bookRate,shows,showRate,closed,closeRate})}
+      if(!liveData.funnel.length)liveData.funnel=null}
+
+    if(crmData&&crmData.length>3){liveData.crm=[];
+      for(let i=2;i<crmData.length;i++){const r=crmData[i];if(!r[1]||r[1]==='Contact Name')continue;
+        liveData.crm.push({plat:r[0]||'-',name:r[1]||'-',status:r[6]||'-',icp:(r[11]||'').substring(0,30),rev:r[10]||'-',paying:r[10]||''})}
+      if(!liveData.crm.length)liveData.crm=null}
+
+    if(igData&&igData.length>3){liveData.igWeekly={reach:[],followers:[],leads:[],weeks:[]};
+      let cw='',wr=0,wf=0,wl=0;
+      for(let i=2;i<igData.length;i++){const r=igData[i],week=r[0];
+        if(week&&week.startsWith('Week')){if(cw){liveData.igWeekly.weeks.push(cw);liveData.igWeekly.reach.push(wr);liveData.igWeekly.followers.push(wf);liveData.igWeekly.leads.push(wl)}cw=week;wr=0;wf=0;wl=0}
+        wr+=parseInt((r[4]||'').replace(/,/g,''))||0;wf+=parseInt((r[16]||'').replace(/,/g,''))||0;wl+=parseInt((r[8]||'').replace(/,/g,''))||0}
+      if(cw){liveData.igWeekly.weeks.push(cw);liveData.igWeekly.reach.push(wr);liveData.igWeekly.followers.push(wf);liveData.igWeekly.leads.push(wl)}
+      if(!liveData.igWeekly.weeks.length)liveData.igWeekly=null}
+
+    if(trialData&&trialData.length>3){let dd=0,rj=0;
+      for(let i=2;i<trialData.length;i++){const s=(trialData[i][15]||'').toLowerCase();if(s.includes('double'))dd++;else if(s.includes('reject'))rj++}
+      if(dd+rj>0)liveData.trialReels={doubleDown:dd,rejected:rj}}
+
+    if(storyData&&storyData.length>3){liveData.stories={};
+      for(let i=2;i<storyData.length;i++){const t=storyData[i][2]||'';if(!t)continue;
+        if(!liveData.stories[t])liveData.stories[t]={count:0,leads:0,compSum:0};
+        liveData.stories[t].count++;liveData.stories[t].leads+=parseInt(storyData[i][8]||'0')||0;liveData.stories[t].compSum+=parseFloat(storyData[i][7]||'0')||0}}
+
+    const live=!!(liveData.funnel||liveData.crm||liveData.igWeekly);
+    if(live){
+      const now=new Date().toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'});
+      document.getElementById('statusBadge').textContent=`LIVE — ${now}`;
+      document.getElementById('statusBadge').className='badge live';
+      document.getElementById('dataSource').textContent=`Live from Google Sheets | ${new Date().toLocaleTimeString()}`;
+      // Destroy existing charts before re-render
+      Chart.helpers.each(Chart.instances,(c)=>{c.destroy()});
+      render();
+    }
+  } catch(e) { /* Live fetch failed, cached data already showing */ }
+}
+
+function render(){ try {
   const funnel=liveData.funnel||FALLBACK.funnel;
   const crm=liveData.crm||FALLBACK.crm;
   const iw=liveData.igWeekly;
@@ -258,42 +280,83 @@ function render(){
   let totalRev=0;revDeals.forEach(d=>{totalRev+=parseInt(d.paying.replace(/[$,]/g,''))||0});
   const months=funnel.map(f=>f.month.replace(' 2026',''));
 
-  // KPIs
-  document.getElementById('kpiRow').innerHTML=[
-    {l:'IG Reach',v:(totalIgReach/1e6).toFixed(1)+'M',s:'All time'},
-    {l:'Followers Gained',v:totalIgFollows.toLocaleString(),s:'From content'},
-    {l:'Booked Calls',v:totalBooked,s:`${totalShows} showed (${totalShows?Math.round(totalShows/totalBooked*100):0}%)`},
-    {l:'Deals Closed',v:totalClosed,s:`${totalClosed&&totalShows?Math.round(totalClosed/totalShows*100):0}% close rate`},
-    {l:'Revenue',v:'$'+totalRev.toLocaleString(),s:`${revDeals.length} paying clients`},
-  ].map(k=>`<div class="kpi"><div class="kpi-label">${k.l}</div><div class="kpi-val">${k.v}</div><div class="kpi-sub">${k.s}</div></div>`).join('');
+  // Store funnel globally for range toggle
+  window._funnel = funnel;
+  window._revDeals = revDeals;
+  window._totalRev = totalRev;
+
+  // KPIs — render based on range
+  updateKPIs(window._activeRange || 30);
+
+  // All-platform reach estimates by month (IG + FB + TT + YT + LI)
+  const allPlatReach = [
+    567988+27818+48780+39198+166,     // Mar
+    1556876+1157972+160534+143514+732, // Apr
+    2002319+861518+651236+204191+152,  // May
+  ];
+  const allPlatFollows = [
+    297+81+8,    // Mar
+    544+1432+111, // Apr
+    618+575+89,  // May
+  ];
+
+  function updateKPIs(days) {
+    const numMonths = Math.ceil(days / 30);
+    const slice = funnel.slice(-numMonths);
+    const rBooked = slice.reduce((s,f)=>s+f.booked,0);
+    const rShows = slice.reduce((s,f)=>s+f.shows,0);
+    const rClosed = slice.reduce((s,f)=>s+f.closed,0);
+
+    // All-platform reach and followers for the range
+    const reachSlice = allPlatReach.slice(-numMonths);
+    const followSlice = allPlatFollows.slice(-numMonths);
+    const rReach = reachSlice.reduce((s,v)=>s+v,0);
+    const rFollows = followSlice.reduce((s,v)=>s+v,0);
+
+    const rangeLabel = days === 30 ? 'Last 30 days' : days === 60 ? 'Last 60 days' : 'Last 90 days';
+
+    // Date range label
+    const end = new Date();
+    const start = new Date(end);
+    start.setDate(start.getDate() - days);
+    const fmt = d => d.toLocaleDateString('en-US',{month:'short',day:'numeric'});
+    document.getElementById('dateRangeLabel').textContent = `${fmt(start)} - ${fmt(end)}, 2026`;
+
+    document.getElementById('kpiRow').innerHTML=[
+      {l:'Total Reach',v:rReach>1e6?(rReach/1e6).toFixed(1)+'M':(rReach/1e3).toFixed(0)+'K',s:rangeLabel+' | All platforms'},
+      {l:'Followers Gained',v:rFollows.toLocaleString(),s:rangeLabel+' | All platforms'},
+      {l:'Booked Calls',v:rBooked,s:`${rShows} showed (${rShows&&rBooked?Math.round(rShows/rBooked*100):0}%)`},
+      {l:'Deals Closed',v:rClosed,s:`${rClosed&&rShows?Math.round(rClosed/rShows*100):0}% close rate`},
+      {l:'Revenue',v:'$'+totalRev.toLocaleString(),s:`${revDeals.length} paying clients`},
+    ].map(k=>`<div class="kpi"><div class="kpi-label">${k.l}</div><div class="kpi-val">${k.v}</div><div class="kpi-sub">${k.s}</div></div>`).join('');
+  }
+  window.updateKPIs = updateKPIs;
 
   // Charts config helper
   const gridOpts={color:'#222'};const noGrid={display:false};
-
-  new Chart(document.getElementById('impChart'),{type:'bar',data:{labels:months,datasets:[
-    {label:'DMs Sent',data:funnel.map(f=>f.dms),backgroundColor:YELLOW},
-    {label:'Warm Leads',data:funnel.map(f=>f.warm),backgroundColor:'#fff'},
-    {label:'Booked',data:funnel.map(f=>f.booked),backgroundColor:'#666'},
+  // Combined chart
+  new Chart(document.getElementById('comboChart'),{type:'bar',data:{labels:months,datasets:[
+    {label:'DMs Sent',data:funnel.map(f=>f.dms),backgroundColor:YELLOW,borderRadius:4},
+    {label:'Warm Leads',data:funnel.map(f=>f.warm),backgroundColor:'#555',borderRadius:4},
   ]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'bottom',labels:{boxWidth:8,font:{size:10},color:'#999'}}},scales:{x:{grid:noGrid,ticks:{color:'#666'}},y:{grid:gridOpts,ticks:{font:{size:10},color:'#666'}}}}});
 
-  new Chart(document.getElementById('followChart'),{type:'line',data:{labels:months,datasets:[
-    {label:'Show Ups',data:funnel.map(f=>f.shows),borderColor:YELLOW,backgroundColor:YELLOWDIM,fill:true,tension:.3,pointRadius:6,pointBackgroundColor:YELLOW},
-    {label:'Closed',data:funnel.map(f=>f.closed),borderColor:'#fff',backgroundColor:'rgba(255,255,255,.05)',fill:true,tension:.3,pointRadius:6,pointBackgroundColor:'#fff'},
-  ]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'bottom',labels:{boxWidth:8,font:{size:10},color:'#999'}}},scales:{y:{grid:gridOpts,ticks:{font:{size:10},color:'#666'}},x:{grid:noGrid,ticks:{color:'#666'}}}}});
-
+  // Platform cards — compact 6-across
   document.getElementById('platformCards').innerHTML=[
     {name:'Instagram',reach:(totalIgReach/1e6).toFixed(1)+'M',followers:totalIgFollows,leads:wl.reduce((s,v)=>s+v,0)},
     {name:'Facebook',reach:'2.1M+',followers:'2,440',leads:'63+'},
     {name:'TikTok',reach:'651K',followers:'246',leads:'0'},
     {name:'YouTube',reach:'375K',followers:'~10',leads:'1'},
     {name:'LinkedIn',reach:'900',followers:'0',leads:'0'},
-    {name:'Stories',reach:'155 avg',followers:'-',leads:'40+'},
-  ].map(p=>`<div class="plat-card"><h3>${p.name}</h3><div class="plat-row"><span class="l">Reach</span><span class="v">${p.reach}</span></div><div class="plat-row"><span class="l">Followers</span><span class="v">${p.followers}</span></div><div class="plat-row"><span class="l">Leads</span><span class="v">${p.leads}</span></div></div>`).join('');
+  ].map(p=>`<div class="plat-card" style="padding:12px"><h3 style="font-size:12px;margin-bottom:6px">${p.name}</h3><div class="plat-row"><span class="l">Reach</span><span class="v">${p.reach}</span></div><div class="plat-row"><span class="l">Follows</span><span class="v">${p.followers}</span></div><div class="plat-row"><span class="l">Leads</span><span class="v">${p.leads}</span></div></div>`).join('');
 
-  // Funnel tab
-  new Chart(document.getElementById('funnelChart'),{type:'bar',data:{labels:['DMs','Warm','Booked','Shows','Closed'],
-    datasets:funnel.map((f,i)=>({label:f.month.replace(' 2026',''),data:[f.dms,f.warm,f.booked,f.shows,f.closed],backgroundColor:[YELLOW,'#fff','#666'][i]||'#444'}))},
-    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'bottom',labels:{boxWidth:8,font:{size:10},color:'#999'}}},scales:{x:{grid:noGrid,ticks:{color:'#666'}},y:{grid:gridOpts,ticks:{font:{size:10},color:'#666'}}}}});
+  // Funnel tab — separate charts for volume and conversions side by side
+  new Chart(document.getElementById('funnelChart'),{type:'bar',data:{labels:months,
+    datasets:[
+      {label:'Booked Calls',data:funnel.map(f=>f.booked),backgroundColor:YELLOW,borderRadius:4},
+      {label:'Show Ups',data:funnel.map(f=>f.shows),backgroundColor:'#fff',borderRadius:4},
+      {label:'Closed',data:funnel.map(f=>f.closed),backgroundColor:'#555',borderRadius:4},
+    ]},
+    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'bottom',labels:{boxWidth:8,font:{size:10},color:'#999'}},title:{display:true,text:'Booked → Show Up → Close (by month)',color:'#666',font:{size:10}}},scales:{x:{grid:noGrid,ticks:{color:'#666'}},y:{grid:gridOpts,ticks:{font:{size:10},color:'#666'}}}}});
 
   document.getElementById('funnelViz').innerHTML=[
     {val:lf.dms,lbl:'DMs Sent',rate:''},
@@ -303,18 +366,28 @@ function render(){
     {val:lf.closed,lbl:'Closed',rate:lf.closeRate+'%'},
   ].map((s,i)=>(i>0?'<span class="funnel-arrow">→</span>':'')+`<div class="funnel-step"><div class="val">${s.val}</div><div class="lbl">${s.lbl}</div><div class="rate">${s.rate}</div></div>`).join('');
 
-  new Chart(document.getElementById('rateChart'),{type:'line',data:{labels:months,datasets:[
-    {label:'Flip %',data:funnel.map(f=>f.flipRate),borderColor:YELLOW,tension:.3,pointRadius:5,pointBackgroundColor:YELLOW},
-    {label:'Show Up %',data:funnel.map(f=>f.showRate),borderColor:'#fff',tension:.3,pointRadius:5,pointBackgroundColor:'#fff'},
-    {label:'Close %',data:funnel.map(f=>f.closeRate),borderColor:'#666',tension:.3,pointRadius:5,pointBackgroundColor:'#666'},
-  ]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'bottom',labels:{boxWidth:8,font:{size:10},color:'#999'}}},scales:{y:{ticks:{callback:v=>v+'%',font:{size:10},color:'#666'},grid:gridOpts},x:{grid:noGrid,ticks:{color:'#666'}}}}});
+  // Call source breakdown — count booked calls by platform from CRM
+  const callsByPlat = {};
+  crm.forEach(c => {
+    if (['Closed','Followup','Follow Up','Booked','Booked Call','Rescheduled'].includes(c.status)) {
+      const p = c.plat === 'IG' ? 'Instagram' : c.plat === 'FB' ? 'Facebook' : c.plat === 'TikTok' ? 'TikTok' : 'Other';
+      callsByPlat[p] = (callsByPlat[p] || 0) + 1;
+    }
+  });
+  const csLabels = Object.keys(callsByPlat);
+  const csData = Object.values(callsByPlat);
+  const csColors = csLabels.map(l => l === 'Instagram' ? YELLOW : l === 'Facebook' ? '#fff' : l === 'TikTok' ? '#666' : '#444');
 
-  // Target
-  const cr={flip:.10,w2b:.676,b2s:.64,s2c:.375};
-  function tgt(p){const cl=Math.ceil(50000/p),sh=Math.ceil(cl/cr.s2c),bk=Math.ceil(sh/cr.b2s),w=Math.ceil(bk/cr.w2b),d=Math.ceil(w/cr.flip);return{cl,sh,bk,w,d}}
-  const t1=tgt(1500),t2=tgt(3500);
-  function pb(cur,max){const p=Math.min(100,Math.round(cur/max*100));return`<div class="prog-wrap"><div class="prog-label"><span>${cur} / ${max.toLocaleString()}</span><span>${p}%</span></div><div class="prog-bar"><div class="prog-fill" style="width:${p}%"></div></div></div>`}
-  document.getElementById('targetGrid').innerHTML=`<div><h3 style="font-family:Anton;font-size:13px;color:var(--gray);margin-bottom:10px">AT $1.5K</h3>${pb(lf.dms,t1.d)}${pb(lf.warm,t1.w)}${pb(lf.booked,t1.bk)}${pb(lf.shows,t1.sh)}${pb(lf.closed,t1.cl)}</div><div><h3 style="font-family:Anton;font-size:13px;color:${YELLOW};margin-bottom:10px">AT $3.5K</h3>${pb(lf.dms,t2.d)}${pb(lf.warm,t2.w)}${pb(lf.booked,t2.bk)}${pb(lf.shows,t2.sh)}${pb(lf.closed,t2.cl)}</div>`;
+  new Chart(document.getElementById('callSourceChart'), {
+    type: 'doughnut',
+    data: { labels: csLabels.map((l,i) => `${l} (${csData[i]})`), datasets: [{ data: csData, backgroundColor: csColors, borderColor: '#000', borderWidth: 2 }] },
+    options: { responsive: true, maintainAspectRatio: false, cutout: '60%', plugins: { legend: { position: 'bottom', labels: { boxWidth: 8, font: { size: 10 }, color: '#999' } } } }
+  });
+
+  const totalCalls = csData.reduce((s,v) => s+v, 0);
+  document.getElementById('callSourceTable').innerHTML = '<table><thead><tr><th>Platform</th><th>Calls</th><th>%</th></tr></thead><tbody>' +
+    csLabels.map((l,i) => `<tr><td style="font-weight:700">${l}</td><td style="color:${YELLOW}">${csData[i]}</td><td>${totalCalls ? Math.round(csData[i]/totalCalls*100) : 0}%</td></tr>`).join('') +
+    `<tr style="border-top:1px solid var(--border)"><td style="font-weight:700">Total</td><td style="color:${YELLOW}">${totalCalls}</td><td>100%</td></tr></tbody></table>`;
 
   // Content tab
   new Chart(document.getElementById('weeklyReach'),{type:'bar',data:{labels:wk,datasets:[{data:wr,backgroundColor:wr.map(v=>v>100000?YELLOW:'#333')}]},
@@ -369,9 +442,18 @@ function render(){
     options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{y:{ticks:{callback:v=>'$'+v.toLocaleString(),font:{size:10},color:'#666'},grid:gridOpts},x:{grid:noGrid,ticks:{color:'#666'}}}}});
 
   document.getElementById('revTable').innerHTML=revDeals.map(d=>`<tr><td style="font-weight:700">${d.name}</td><td>${d.plat}</td><td style="color:${YELLOW};font-weight:700">${d.paying}</td><td><span class="status s-paid">PAID</span></td></tr>`).join('');
+} catch(e) { console.error('Render error:', e); document.getElementById('dataSource').textContent='Render error: '+e.message; }
 }
 
 function showTab(id,el){document.querySelectorAll('.tab-content').forEach(e=>e.classList.remove('active'));document.querySelectorAll('.tab').forEach(e=>e.classList.remove('active'));document.getElementById(id).classList.add('active');el.classList.add('active')}
+
+window._activeRange = 30;
+function setRange(days, el) {
+  window._activeRange = days;
+  document.querySelectorAll('.range-btn').forEach(b => b.classList.remove('active'));
+  el.classList.add('active');
+  if (window.updateKPIs) window.updateKPIs(days);
+}
 
 loadData();
 </script>
