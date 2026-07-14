@@ -1,0 +1,599 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Marcel Giannattasio | Dashboard</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Anton&family=Inter:wght@400;600;700;800&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.5.0/dist/chart.umd.js" integrity="sha384-iU8HYtnGQ8Cy4zl7gbNMOhsDTTKX02BTXptVP/vqAWIaTfM7isw76iyZCsjL2eVi" crossorigin="anonymous"></script>
+<style>
+:root{--bg:#000;--card:#1a1a1a;--card2:#2D2D2D;--accent:#EFBF04;--white:#fff;--gray:#999;--border:#333;color-scheme:dark}
+*{margin:0;padding:0;box-sizing:border-box}
+*,*::before,*::after{transition:none!important;animation:none!important}
+body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--white);padding:20px;line-height:1.5}
+
+.tabs{display:flex;gap:4px;margin-bottom:24px;background:var(--card);border-radius:10px;padding:4px;border:1px solid var(--border)}
+.tab{padding:10px 20px;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer;border:none;background:transparent;color:var(--gray);transition:all .2s;font-family:'Inter',sans-serif;text-transform:uppercase;letter-spacing:1px}
+.tab.active{background:var(--accent);color:#000}.tab:hover:not(.active){background:var(--card2);color:var(--white)}
+.tab-content{display:none}.tab-content.active{display:block}
+
+.header{margin-bottom:24px;display:flex;justify-content:space-between;align-items:flex-end;border-bottom:2px solid var(--accent);padding-bottom:16px}
+.header h1{font-family:'Anton',sans-serif;font-size:28px;font-weight:400;letter-spacing:1px;text-transform:uppercase;color:var(--white)}
+.header-sub{font-size:11px;color:var(--gray);margin-top:4px;letter-spacing:.5px}
+.badge{display:inline-block;padding:4px 12px;border-radius:20px;font-size:10px;font-weight:700;letter-spacing:.5px}
+.badge.live{background:var(--accent);color:#000}.badge.loading{background:var(--card2);color:var(--gray)}
+
+.kpi-row{display:grid;grid-template-columns:repeat(5,1fr);gap:12px;margin-bottom:20px}
+.kpi{background:var(--card);border-radius:12px;padding:18px;border:1px solid var(--border);transition:border-color .2s}
+.kpi:hover{border-color:var(--accent)}
+.kpi-label{font-size:9px;color:var(--gray);text-transform:uppercase;letter-spacing:1.2px;font-weight:700}
+.kpi-val{font-family:'Anton',sans-serif;font-size:30px;font-weight:400;margin-top:6px;color:var(--accent)}
+.kpi-sub{font-size:11px;color:var(--gray);margin-top:4px}
+
+.section{background:var(--card);border-radius:12px;padding:20px;border:1px solid var(--border);margin-bottom:16px}
+.section h2{font-family:'Anton',sans-serif;font-size:14px;font-weight:400;color:var(--accent);margin-bottom:16px;text-transform:uppercase;letter-spacing:1.5px}
+.chart-box{position:relative;width:100%;height:250px}.chart-sm{height:200px}
+
+.g2{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+.g3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px}
+
+.funnel{display:flex;align-items:center;gap:8px}
+.funnel-step{flex:1;text-align:center;padding:16px 8px;border-radius:10px;border:1px solid var(--border)}
+.funnel-step .val{font-family:'Anton',sans-serif;font-size:28px;color:var(--accent)}
+.funnel-step .lbl{font-size:9px;color:var(--gray);text-transform:uppercase;letter-spacing:.8px;margin-top:4px}
+.funnel-step .rate{font-size:11px;color:var(--white);font-weight:700;margin-top:6px}
+.funnel-arrow{color:var(--accent);font-size:20px;font-weight:700}
+
+table{width:100%;border-collapse:collapse;font-size:11px}
+th{text-align:left;padding:10px 8px;color:var(--accent);font-size:9px;text-transform:uppercase;letter-spacing:1px;border-bottom:1px solid var(--border);font-weight:700}
+td{padding:10px 8px;border-bottom:1px solid #1a1a1a;color:var(--white)}
+tr:hover td{background:rgba(239,191,4,.03)}
+.status{display:inline-block;padding:3px 10px;border-radius:4px;font-size:9px;font-weight:700;letter-spacing:.3px}
+.s-paid{background:rgba(239,191,4,.15);color:var(--accent)}.s-pending{background:rgba(255,255,255,.08);color:var(--white)}
+.s-risk{background:rgba(255,50,50,.15);color:#ff6b6b}.s-follow{background:rgba(255,255,255,.05);color:var(--gray)}
+.s-bounced{background:rgba(255,255,255,.03);color:#666}
+
+.plat-card{background:var(--card2);border-radius:10px;padding:16px;border:1px solid var(--border);transition:border-color .2s}
+.plat-card:hover{border-color:var(--accent)}
+.plat-card h3{font-family:'Anton',sans-serif;font-size:14px;font-weight:400;margin-bottom:10px;letter-spacing:.5px}
+.plat-row{display:flex;justify-content:space-between;padding:4px 0;font-size:11px}
+.plat-row .l{color:var(--gray)}.plat-row .v{font-weight:700;color:var(--white)}
+
+.mini-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}
+.mini{background:var(--card);border-radius:10px;padding:14px;text-align:center;border:1px solid var(--border)}
+.mini .v{font-family:'Anton',sans-serif;font-size:24px}.mini .l{font-size:9px;color:var(--gray);text-transform:uppercase;letter-spacing:.8px;margin-top:4px}
+.c-green{color:#4cd137}.c-blue{color:var(--accent)}.c-orange{color:#ffa502}.c-red{color:#ff6b6b}
+
+.prog-wrap{margin-top:14px}.prog-label{display:flex;justify-content:space-between;font-size:11px;margin-bottom:5px;color:var(--gray)}
+.prog-bar{height:6px;background:var(--card2);border-radius:3px;overflow:hidden}
+.prog-fill{height:100%;border-radius:3px;background:var(--accent);transition:width .5s}
+
+.range-bar{display:flex;gap:4px;margin-bottom:16px;align-items:center;flex-wrap:wrap}
+.range-btn{padding:6px 16px;border-radius:6px;font-size:10px;font-weight:700;cursor:pointer;border:1px solid var(--border);background:transparent;color:var(--gray);font-family:'Inter',sans-serif;letter-spacing:.8px;transition:all .2s}
+.range-btn.active{background:var(--accent);color:#000;border-color:var(--accent)}
+.range-btn:hover:not(.active){background:var(--card2);color:var(--white)}
+.data-source{font-size:9px;color:#444;text-align:center;margin-top:24px;padding:10px;letter-spacing:.5px}
+
+@media(max-width:700px){.kpi-row{grid-template-columns:repeat(2,1fr)}.g2,.g3{grid-template-columns:1fr}.funnel{flex-wrap:wrap}.funnel-arrow{display:none}.tabs{flex-wrap:wrap}.mini-grid{grid-template-columns:repeat(2,1fr)}}
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div>
+    <h1>LEGACY TRANSFER</h1>
+    <div class="header-sub">@marcelgiannattasio | Marcel Giannattasio</div>
+  </div>
+  <span class="badge loading" id="statusBadge">LOADING...</span>
+</div>
+
+<div class="tabs">
+  <button class="tab active" onclick="showTab('overview',this)">Overview</button>
+  <button class="tab" onclick="showTab('funnel',this)">Funnel</button>
+  <button class="tab" onclick="showTab('content',this)">Content</button>
+  <button class="tab" onclick="showTab('crm',this)">CRM</button>
+  <button class="tab" onclick="showTab('revenue',this)">Revenue</button>
+</div>
+
+<div id="overview" class="tab-content active">
+  <div class="kpi-row" id="kpiRow"></div>
+  <div class="section"><h2>Monthly Performance</h2><div class="chart-box" style="height:280px"><canvas id="comboChart"></canvas></div></div>
+  <div class="section"><h2>Platform Breakdown</h2><div style="display:grid;grid-template-columns:repeat(5,1fr);gap:8px" id="platformCards"></div></div>
+</div>
+
+<div id="funnel" class="tab-content">
+  <div class="section"><h2>DMs Sent</h2><div class="chart-box"><canvas id="funnelChart"></canvas></div></div>
+  <div class="section"><h2>Call Source Breakdown</h2><div class="g2"><div class="chart-box chart-sm"><canvas id="callSourceChart"></canvas></div><div id="callSourceTable"></div></div></div>
+  <div class="section"><h2 id="funnelVizTitle">Funnel Summary</h2><div class="funnel" id="funnelViz"></div></div>
+</div>
+
+<div id="content" class="tab-content">
+  <div class="g2">
+    <div class="section"><h2>Weekly IG Reach</h2><div class="chart-box"><canvas id="weeklyReach"></canvas></div></div>
+    <div class="section"><h2>Weekly Followers + Leads</h2><div class="chart-box"><canvas id="weeklyFollowers"></canvas></div></div>
+  </div>
+  <div class="section"><h2>Top Formats</h2><div style="overflow-x:auto"><table><thead><tr><th>Hooks</th><th>Format</th><th>Platform</th><th>Views</th><th>Followers</th><th>Leads</th></tr></thead><tbody id="topContent"></tbody></table></div></div>
+</div>
+
+<div id="crm" class="tab-content">
+  <div class="mini-grid" id="crmStats"></div>
+  <div style="height:16px"></div>
+  <div class="g2">
+    <div class="section"><h2>Pipeline</h2><div class="chart-box chart-sm"><canvas id="crmDonut"></canvas></div></div>
+    <div class="section"><h2>Traffic Source</h2><div class="chart-box chart-sm"><canvas id="trafficChart"></canvas></div></div>
+  </div>
+  <div class="section"><h2>All Prospects</h2><div style="overflow-x:auto"><table><thead><tr><th>Name</th><th>Platform</th><th>Status</th><th>ICP</th><th>Revenue</th></tr></thead><tbody id="crmTable"></tbody></table></div></div>
+</div>
+
+<div id="revenue" class="tab-content">
+  <div class="kpi-row" style="grid-template-columns:repeat(2,1fr)" id="revKpis"></div>
+  <div class="section"><h2>Closed Deals</h2><table><thead><tr><th>Client</th><th>Platform</th><th>Amount</th><th>Status</th></tr></thead><tbody id="revTable"></tbody></table></div>
+</div>
+
+<div class="data-source" id="dataSource">Connecting to Google Sheets...</div>
+
+<script>
+// ===== CHART.JS GLOBAL DEFAULTS =====
+Chart.defaults.color = '#999';
+Chart.defaults.borderColor = '#333';
+Chart.defaults.font.family = "'Inter', sans-serif";
+Chart.defaults.animation = false;          // no chart animations (too heavy)
+Chart.defaults.animations = false;
+Chart.defaults.transitions.active.animation.duration = 0;
+Chart.defaults.hover.mode = 'nearest';
+
+const CRM_ID = '1cX6l24ULzr6oQsGjXo1Vci7Ma4lNbs6COr-fILtCtIU';
+const DATA_ID = '1sNiXv8jUhkSHaygrrQafb8AcyqJEVhduBApZ9x6zDwE';
+
+// ===== PUBLISHED-TO-WEB CSV — reliable & auto-updating (Google refreshes it ~every 5 min) =====
+// Content / platform "data scraper" workbook (File ▸ Share ▸ Publish to web). One base URL, one gid per tab.
+const PUB_BASE = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQqlyuHzr4IZjc2wRmSFwwBTUhdyXtSJOKkIipH-cvTSDalR5xfoZZdhscvbk8GjvXzzjryDknIHmp7/pub';
+const PUB_GID  = { ig:79027355, trial:17887384, story:1252079633, fb:1838754020, tiktok:1301204316, youtube:1374837379, linkedin:569508187 };
+function pubUrl(gid){ return `${PUB_BASE}?gid=${gid}&single=true&output=csv`; }
+async function fetchPub(gid){ for(let a=0;a<2;a++){ try{ const ctrl=new AbortController(); const t=setTimeout(()=>ctrl.abort(),12000); const r=await fetch(pubUrl(gid),{signal:ctrl.signal}); clearTimeout(t); if(!r.ok)throw 0; return parseCSV(await r.text()); }catch(e){ if(a) return null; } } return null; }
+
+// ===== CRM / FUNNEL / REVENUE workbook =====
+// TODO: once that sheet is published (File ▸ Share ▸ Publish to web ▸ Entire document, CSV),
+// paste its base URL here and set the two gids. Until then it falls back to the legacy fetch.
+const CRM_PUB_BASE = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vSsG3j4gqB8iZHA1sm64nuWopV4GCSofma15C6EslfC7SHA-IlQNUTQAvX8Jp9uN22C0xHYgLe2Vol0/pub';
+const CRM_PUB_GID  = { funnel:226273709, crm:0, scraper:[1861810125,2091071449,367893903,599219935] };  // Data Scraper tabs (daily DMs/Warm Leads)
+function crmPubUrl(gid){ return `${CRM_PUB_BASE}?gid=${gid}&single=true&output=csv`; }
+async function fetchCrmPub(gid){ if(!CRM_PUB_BASE) return null; for(let a=0;a<2;a++){ try{ const ctrl=new AbortController(); const t=setTimeout(()=>ctrl.abort(),12000); const r=await fetch(crmPubUrl(gid),{signal:ctrl.signal}); clearTimeout(t); if(!r.ok)throw 0; return parseCSV(await r.text()); }catch(e){ if(a) return null; } } return null; }
+
+const YELLOW = '#EFBF04';
+const YELLOWDIM = 'rgba(239,191,4,.25)';
+
+function sheetUrl(id, tab) {
+  return `https://docs.google.com/spreadsheets/d/${id}/gviz/tq?tqx=out:csv&sheet=${encodeURIComponent(tab)}`;
+}
+
+function parseCSV(text) {
+  const rows=[]; let row=[]; let cell=''; let inQ=false;
+  for(let i=0;i<text.length;i++){const c=text[i];
+    if(inQ){if(c==='"'&&text[i+1]==='"'){cell+='"';i++}else if(c==='"'){inQ=false}else{cell+=c}}
+    else{if(c==='"'){inQ=true}else if(c===','){row.push(cell.trim());cell=''}else if(c==='\n'||(c==='\r'&&text[i+1]==='\n')){row.push(cell.trim());rows.push(row);row=[];cell='';if(c==='\r')i++}else{cell+=c}}}
+  if(cell||row.length){row.push(cell.trim());rows.push(row)} return rows;
+}
+
+async function fetchSheet(id,tab){try{const ctrl=new AbortController();const t=setTimeout(()=>ctrl.abort(),3000);const r=await fetch(sheetUrl(id,tab),{signal:ctrl.signal});clearTimeout(t);if(!r.ok)throw 0;return parseCSV(await r.text())}catch(e){return null}}
+
+const FALLBACK={
+  funnel:[
+    {month:'March 2026',dms:409,warm:59,flipRate:14,booked:8,bookRate:2,shows:4,showRate:50,closed:2,closeRate:50},
+    {month:'April 2026',dms:500,warm:59,flipRate:12,booked:11,bookRate:2,shows:6,showRate:54.55,closed:3,closeRate:50},
+    {month:'May 2026',dms:370,warm:37,flipRate:10,booked:25,bookRate:7,shows:16,showRate:64,closed:6,closeRate:38},
+  ],
+  crm:[
+    {name:'All Green / Liam',plat:'IG',status:'Closed',icp:'Yes',rev:'$1,600',paying:'$1,600'},
+    {name:'Brandon Scheidler',plat:'FB',status:'Closed',icp:'Yes',rev:'$1,500',paying:'$1,500'},
+    {name:'Corbin Frick',plat:'FB',status:'Closed',icp:'Yes',rev:'$1,500',paying:'$1,500'},
+    {name:'Arvid Malvik',plat:'FB',status:'Closed',icp:'Yes',rev:'$1,600',paying:'$1,600'},
+    {name:'Casey Clark',plat:'IG',status:'Closed',icp:'Yes',rev:'$1,600',paying:'$1,600'},
+    {name:'John Partrige',plat:'Other',status:'Closed',icp:'Yes',rev:'$1,800',paying:'$1,800'},
+    {name:'Tyler Malvik',plat:'IG',status:'Closed',icp:'Yes',rev:'$1,600',paying:'$1,600'},
+    {name:'Marcus',plat:'IG',status:'Closed',icp:'Border',rev:'Per-call',paying:''},
+    {name:'Ridgway Miller',plat:'FB',status:'Followup',icp:'Yes',rev:'$1,500',paying:''},
+    {name:'Angus McCrady',plat:'FB',status:'Followup',icp:'Yes',rev:'$2K prop',paying:''},
+    {name:'Micah Pelton',plat:'FB',status:'Followup',icp:'Yes',rev:'Consulting',paying:''},
+    {name:'Alex (A1 Tree)',plat:'IG',status:'Bounced',icp:'Yes',rev:'-',paying:''},
+    {name:'Tyler Watters',plat:'IG',status:'Bounced',icp:'Yes',rev:'-',paying:''},
+    {name:'Joe Kohnen',plat:'FB',status:'Bounced',icp:'Yes',rev:'-',paying:''},
+  ],
+  weeklyReach:[4884,197215,99310,27344,57471,31080,24066,53844,25095,456333,25756,24258,17237,777942,60238,81599,66281],
+  weeklyFollowers:[6,177,112,36,38,22,36,22,15,159,10,8,5,357,15,13,16],
+  weeklyLeads:[0,0,0,0,0,0,0,0,7,0,2,1,4,191,6,1,0],
+};
+
+let liveData={funnel:null,crm:null,igw:null,trialRows:null,storyRows:null,daily:null,scraper:null};
+
+function loadData(){
+  // RENDER IMMEDIATELY with cached data so numbers always show
+  const now=new Date().toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'});
+  document.getElementById('statusBadge').textContent=`CACHED — ${now}`;
+  document.getElementById('statusBadge').className='badge';
+  document.getElementById('dataSource').textContent='Using cached data';
+  render();
+
+  // Then try live data in background — if it works, re-render with fresh numbers
+  tryLiveData();
+}
+
+async function tryLiveData(){
+  try {
+    const num = s => parseInt((s||'').toString().replace(/[^0-9.\-]/g,''))||0;
+
+    // ---- Content / platform workbook (published CSV — reliable) ----
+    const [igData,trialData,storyData,fbData,ttData,ytData,liData] = await Promise.all([
+      fetchPub(PUB_GID.ig), fetchPub(PUB_GID.trial), fetchPub(PUB_GID.story),
+      fetchPub(PUB_GID.fb), fetchPub(PUB_GID.tiktok), fetchPub(PUB_GID.youtube), fetchPub(PUB_GID.linkedin)
+    ]);
+
+    // Parse a "m.d" post date (e.g. "6.29") into a 2026 Date so weeks can be date-filtered.
+    const parseMD = s => { const m=(s||'').trim().match(/^(\d{1,2})\.(\d{1,2})$/); return m ? new Date(2026,+m[1]-1,+m[2]) : null; };
+    // Parse a booked-call date. Handles "July 13, 2026", and numeric "a.b.YYYY" / "a/b/YYYY" where the
+    // day/month order is inconsistent — we pick whichever reading is a valid, non-future date.
+    const CRM_MONTHS=['jan','feb','mar','apr','may','jun','jul','aug','sep','oct','nov','dec'];
+    const parseCrmDate = s => { s=(s||'').trim(); if(!s) return null;
+      const mn=s.match(/([A-Za-z]{3,9})\.?\s+(\d{1,2}),?\s*(\d{4})/);
+      if(mn){ const mo=CRM_MONTHS.indexOf(mn[1].slice(0,3).toLowerCase()); if(mo>=0) return new Date(+mn[3],mo,+mn[2]); }
+      const nm=s.match(/^(\d{1,2})[.\/-](\d{1,2})[.\/-](\d{2,4})/); if(!nm) return null;
+      let a=+nm[1], b=+nm[2], y=+nm[3]; if(y<100) y+=2000;
+      const mk=(mo,d)=> (mo>=1&&mo<=12&&d>=1&&d<=31)?new Date(y,mo-1,d):null;
+      const cands=[mk(a,b),mk(b,a)].filter(Boolean); if(!cands.length) return null;   // month.day  or  day.month
+      const cutoff=Date.now()+45*864e5;                                                // allow near-future scheduled calls
+      const ok=cands.filter(d=>d.getTime()<=cutoff);
+      return (ok.length?ok:cands).sort((x,z)=>z-x)[0]; };                              // most recent valid reading
+    // Build a dated weekly series from a tracker's "Week …" rows (used for the Content-tab charts). cFol may be null.
+    const buildWeekly = (data,cReach,cFol,cLead) => { const out=[]; if(!data) return out;
+      for(let i=2;i<data.length;i++){const r=data[i]; if(!r[0]||!r[0].startsWith('Week')) continue;
+        const d=parseMD(r[1]); if(!d) continue;
+        out.push({ d, reach:num(r[cReach]), fol:cFol==null?0:num(r[cFol]), leads:num(r[cLead]) }); }
+      return out; };
+
+    // Build a PER-POST daily series so every time window (even Day 1) resolves to real dates.
+    // Reach is only recorded per week, so each week's Weekly-Reach total is spread across that
+    // week's posts in proportion to their views. Follows/leads are already per-post.
+    const buildDaily = (data,cViews,cFol,cLead,cWeeklyReach,cHook,platLabel,cSum) => { const out=[]; if(!data) return out;
+      let bucket=[], weekReach=0, weekDate=null;
+      const flush=()=>{ const tv=bucket.reduce((s,p)=>s+p.views,0);
+        bucket.forEach(p=>{ p.reach = tv>0 ? weekReach*(p.views/tv) : (bucket.length?weekReach/bucket.length:0); out.push(p); }); bucket=[]; };
+      for(let i=2;i<data.length;i++){const r=data[i];
+        if(r[0]&&r[0].startsWith('Week')){ flush(); weekReach=num(r[cWeeklyReach]); weekDate=parseMD(r[1]); }
+        const d=parseMD(r[1])||weekDate; if(!d) continue;
+        const views=num(r[cViews]), fol=cFol==null?0:num(r[cFol]), leads=num(r[cLead]);
+        if(views||fol||leads) bucket.push({ d, views, fol, leads, reach:0, type:(r[2]||'').trim(), link:(r[3]||'').trim(), hook:(cHook!=null?(r[cHook]||''):'').trim(), summary:(cSum!=null?(r[cSum]||''):'').trim(), plat:platLabel }); }   // type=Post Type, link=Post Link, hook=Winning Hook, summary=Post Summary
+      flush();
+      return out; };
+
+    // ---- CRM / Funnel workbook (published CSV once configured, else legacy gviz fetch) ----
+    const [funnelData,crmData,...scraperData] = await Promise.all([
+      CRM_PUB_BASE ? fetchCrmPub(CRM_PUB_GID.funnel) : fetchSheet(CRM_ID,'Profile Funnel Tracker'),
+      CRM_PUB_BASE ? fetchCrmPub(CRM_PUB_GID.crm)    : fetchSheet(CRM_ID,'CRM'),
+      ...(CRM_PUB_BASE ? CRM_PUB_GID.scraper.map(g=>fetchCrmPub(g)) : [])
+    ]);
+
+    // Data Scraper tabs → dated daily {d,dms,warm} for precise short-range DMs / Warm-Lead windowing.
+    const parseFlexDate = s => { const m=(s||'').trim().match(/^(\d{1,2})\/(\d{1,2})\/(\d{2,4})$/); if(!m) return null; let y=+m[3]; if(y<100)y+=2000; return new Date(y,+m[1]-1,+m[2]); };
+    const scraperMap={};
+    scraperData.forEach(data=>{ if(!data) return;
+      let dCol=0,dmsCol=-1,warmCol=-1;                       // detect columns (layouts vary across tabs)
+      for(let i=0;i<Math.min(3,data.length);i++) (data[i]||[]).forEach((c,j)=>{ const t=(c||'').toLowerCase();
+        if(t.includes('total dms')) dmsCol=j;
+        if(t.includes('warm leads') && !t.includes('conversion')) warmCol=j;
+        if(t.trim()==='date') dCol=j; });
+      if(dmsCol<0) return;
+      for(let i=0;i<data.length;i++){ const r=data[i]; const dt=parseFlexDate(r[dCol]); if(!dt) continue;
+        const dms=num(r[dmsCol]), warm=warmCol>=0?num(r[warmCol]):0; if(!dms && !warm) continue;
+        const k=dt.getTime(); if(!scraperMap[k]) scraperMap[k]={d:dt,dms:0,warm:0};
+        scraperMap[k].dms=Math.max(scraperMap[k].dms,dms); scraperMap[k].warm=Math.max(scraperMap[k].warm,warm); } });  // max de-dupes overlapping tabs
+    liveData.scraper = Object.keys(scraperMap).length ? Object.values(scraperMap) : null;
+
+    if(funnelData&&funnelData.length>2){liveData.funnel=[];
+      for(let i=1;i<funnelData.length;i++){const r=funnelData[i];if(!r[0]||r[0].includes('#DIV'))continue;
+        const dms=num(r[2]),warm=num(r[3]),flipRate=parseFloat(r[4])||0,booked=num(r[5]),bookRate=parseFloat(r[6])||0,
+        shows=num(r[7]),showRate=parseFloat(r[8])||0,closed=num(r[9]),closeRate=parseFloat(r[10])||0;
+        if(dms>0||warm>0||booked>0)liveData.funnel.push({month:r[0],dms,warm,flipRate,booked,bookRate,shows,showRate,closed,closeRate})}
+      if(!liveData.funnel.length)liveData.funnel=null}
+
+    if(crmData&&crmData.length>3){liveData.crm=[];
+      // Auto-detect a "Date Paid" / "Date Closed" column (added later) → enables Revenue windowing.
+      let paidCol=-1;
+      [crmData[0]||[],crmData[1]||[]].forEach(hr=>hr.forEach((h,j)=>{ if(/(date\s*paid|paid\s*date|payment\s*date|date\s*closed|closed\s*date)/i.test(h||'')) paidCol=j; }));
+      for(let i=2;i<crmData.length;i++){const r=crmData[i];if(!r[1]||r[1]==='Contact Name')continue;
+        // Paying Client (Stripe) cell is rich text e.g. "✅ Paid — $1,600 (4 calls)" / "⏳ Invoice sent — $1,500 (unpaid)".
+        const payCell=r[10]||'';
+        const amt=(payCell.match(/\$[\d,]+/)||[])[0]||'';                 // first $ amount in the cell
+        const unpaid=/unpaid|invoice sent|at risk|close to paying/i.test(payCell);
+        const paid=(amt&&!unpaid)?amt:'';                                 // count only collected/active revenue
+        const icp=((r[11]||'').match(/ICP:\s*([A-Za-z]+)/)||[])[1]||(r[11]||'').substring(0,18);
+        liveData.crm.push({plat:r[0]||'-',name:(r[1]||'-').trim(),status:(r[6]||'-').trim(),icp:icp,rev:paid||'-',paying:paid,bd:parseCrmDate(r[5]),pd:paidCol>=0?parseCrmDate(r[paidCol]):null,rec:(r[9]||'').trim()})}   // bd=Booked Call Date, pd=Date Paid, rec=recording
+      if(!liveData.crm.length)liveData.crm=null}
+
+    // Trial reels — keep dated rows so the filter can window them (Status col 16).
+    if(trialData&&trialData.length>2){liveData.trialRows=[];let wd=null;
+      for(let i=2;i<trialData.length;i++){const r=trialData[i];if(r[0]&&r[0].startsWith('Week'))wd=parseMD(r[1]);const d=parseMD(r[1])||wd;const s=(r[16]||'').toLowerCase();
+        if(d&&(s.includes('double')||s.includes('reject')))liveData.trialRows.push({d,win:s.includes('double')})}
+      if(!liveData.trialRows.length)liveData.trialRows=null}
+
+    // Stories — keep dated rows (type col 2, completion col 7, leads col 8).
+    if(storyData&&storyData.length>2){liveData.storyRows=[];let wd=null;
+      for(let i=2;i<storyData.length;i++){const r=storyData[i];if(r[0]&&r[0].startsWith('Week'))wd=parseMD(r[1]);const d=parseMD(r[1])||wd;const t=r[2]||'';
+        if(t&&d)liveData.storyRows.push({d,type:t,leads:num(r[8]),comp:parseFloat(r[7])||0})}
+      if(!liveData.storyRows.length)liveData.storyRows=null}
+
+    // Dated weekly series per platform (from each tracker's weekly-summary columns on the "Week …" rows).
+    // Per-post daily series per platform — drives the platform cards + the Day 1/7/14/30/60/90/All filter.
+    // Columns: (Views, Follows, Leads, WeeklyReach) per the old-workbook layout.
+    liveData.daily = {
+      ig:       buildDaily(igData,4,16,8,22,19,'IG',18),      // hook=Winning Hook(19), summary=Post Summary(18)
+      fb:       buildDaily(fbData,4,10,8,14,11,'FB',null),    // hook=Notes(11)
+      tiktok:   buildDaily(ttData,4,10,8,14,11,'TikTok',null),// hook=Notes(11)
+      youtube:  buildDaily(ytData,4,null,7,10,8,'YouTube',null),// hook=Notes(8)
+      linkedin: buildDaily(liData,4,null,8,14,12,'LinkedIn',11),// hook=Winning Hook(12), summary=Post Summary(11)
+    };
+    // Instagram dated weekly series for the Content-tab charts (from the "Week …" rows).
+    const igw=buildWeekly(igData,22,21,20);
+    liveData.igw = igw.length ? igw : null;
+
+    const live=!!(liveData.funnel||liveData.crm||liveData.igw||(liveData.daily&&liveData.daily.ig.length));
+    if(live){
+      const now=new Date().toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'});
+      document.getElementById('statusBadge').textContent=`LIVE — ${now}`;
+      document.getElementById('statusBadge').className='badge live';
+      document.getElementById('dataSource').textContent=`Live from Google Sheets | refreshed ${new Date().toLocaleTimeString()}`;
+      // Destroy existing charts before re-render
+      Chart.helpers.each(Chart.instances,(c)=>{c.destroy()});
+      render();
+    }
+  } catch(e) { /* Live fetch failed, cached data already showing */ console.error('Live fetch error:',e); }
+}
+
+function render(){ try {
+  // ===== Window EVERY tab's data by the active filter (anchored to latest data date) =====
+  const days=window._activeRange||9999, isAll=days>=9999;
+  const daily=liveData.daily;
+  const allPosts=daily?[].concat(daily.ig,daily.fb,daily.tiktok,daily.youtube,daily.linkedin):[];
+  const dataEnd=allPosts.length?allPosts.reduce((m,p)=>Math.max(m,p.d.getTime()),0):Date.now();
+  const winStart=dataEnd-days*864e5;
+  const inWin=t=>isAll||(t>=winStart&&t<=dataEnd);
+  const MN=['january','february','march','april','may','june','july','august','september','october','november','december'];
+  const monthOverlap=m=>{const i=MN.findIndex(n=>(m||'').toLowerCase().includes(n));if(i<0)return false;const ms=new Date(2026,i,1).getTime(),me=new Date(2026,i+1,0).getTime();return ms<=dataEnd&&me>=winStart;};
+
+  const funnelAll=liveData.funnel||FALLBACK.funnel;
+  // Window the (monthly) funnel; never let it go empty on short ranges — fall back to the latest month
+  // so the Monthly Performance / Funnel charts + Booked/Closed KPIs always show something consistent.
+  let funnel=isAll?funnelAll.slice():funnelAll.filter(f=>monthOverlap(f.month));
+  if(!funnel.length && funnelAll.length) funnel=[funnelAll[funnelAll.length-1]];
+  // CRM / Revenue / Call-Source now window by booked-call date (75/84 rows have one; the 9 without
+  // a date only appear in "All"). This makes those tabs respond to the filter like everything else.
+  const crmAll=liveData.crm||FALLBACK.crm;
+  const crm=isAll?crmAll:crmAll.filter(c=>c.bd&&inWin(c.bd.getTime()));
+  // IG weekly → chart arrays (windowed)
+  const igwAll=liveData.igw;
+  const igwSel=igwAll?(isAll?igwAll:igwAll.filter(w=>inWin(w.d.getTime()))):null;   // live → windowed (may be empty); no live → fallback
+  const wr=igwSel?igwSel.map(w=>w.reach):FALLBACK.weeklyReach;
+  const wf=igwSel?igwSel.map(w=>w.fol):FALLBACK.weeklyFollowers;
+  const wl=igwSel?igwSel.map(w=>w.leads):FALLBACK.weeklyLeads;
+  const wk=igwSel?igwSel.map((_,i)=>'W'+(i+1)):wr.map((_,i)=>'W'+(i+1));
+  // Trial reels (windowed) — count within window; only fall back to cached when there's no live data at all
+  const trAll=liveData.trialRows;
+  const trSel=trAll?(isAll?trAll:trAll.filter(x=>inWin(x.d.getTime()))):[];
+  const tr=trAll?{doubleDown:trSel.filter(x=>x.win).length,rejected:trSel.filter(x=>!x.win).length}:{doubleDown:112,rejected:248};
+  // Stories (windowed) → {type:{count,leads,compSum}}; empty object when the window has none
+  const stAll=liveData.storyRows;
+  const stSel=stAll?(isAll?stAll:stAll.filter(x=>inWin(x.d.getTime()))):null;
+  let stories=null;
+  if(stAll){stories={};(stSel||[]).forEach(x=>{if(!stories[x.type])stories[x.type]={count:0,leads:0,compSum:0};stories[x.type].count++;stories[x.type].leads+=x.leads;stories[x.type].compSum+=x.comp;});}
+  const totalBooked=funnel.reduce((s,f)=>s+f.booked,0);
+  const totalShows=funnel.reduce((s,f)=>s+f.shows,0);
+  const totalClosed=funnel.reduce((s,f)=>s+f.closed,0);
+  const lf=funnel[funnel.length-1]||funnelAll[funnelAll.length-1]||{};
+  const totalIgReach=wr.reduce((s,v)=>s+v,0);
+  const totalIgFollows=wf.reduce((s,v)=>s+v,0);
+  const crmClosed=crm.filter(c=>c.status==='Closed').length;
+  const crmFollow=crm.filter(c=>['Followup','Follow Up','Booked','Rescheduled','Booked Call'].includes(c.status)).length;
+  const crmBounced=crm.filter(c=>['Bounced'].includes(c.status)).length;
+  // Revenue windows by "Date Paid" if that column exists, else by the booked-call date (best available).
+  const revAll=crmAll.filter(c=>c.paying&&c.paying.startsWith('$'));
+  const revDate=c=>c.pd||c.bd;                       // prefer Date Paid; fall back to booked-call date
+  const revByPaid=revAll.some(c=>c.pd);              // becomes true once a Date Paid column is filled
+  const revAnyDate=revAll.some(c=>revDate(c));
+  const revDeals=(isAll||!revAnyDate)?revAll:revAll.filter(c=>{const d=revDate(c);return d&&inWin(d.getTime());});
+  let totalRev=0;revDeals.forEach(d=>{totalRev+=parseInt(d.paying.replace(/[$,]/g,''))||0});
+  const months=funnel.map(f=>f.month.replace(' 2026',''));
+
+  // Store funnel globally for range toggle
+  window._funnel = funnel;
+  window._revDeals = revDeals;
+  window._totalRev = totalRev;
+
+  // ===== Overview KPIs + platform cards (windowed; reuses the top-level window vars) =====
+  const fmtR = v => v>=1e6?(v/1e6).toFixed(1)+'M' : v>=1e3?(v/1e3).toFixed(0)+'K' : Math.round(v||0).toLocaleString();
+  const PLATS = [['ig','Instagram',true],['fb','Facebook',true],['tiktok','TikTok',true],['youtube','YouTube',false],['linkedin','LinkedIn',false]];
+  const FBK = { ig:['3.2M','1,392',339], fb:['2.1M+','2,440','63+'], tiktok:['651K','246',0], youtube:['375K','—',1], linkedin:['900','—',0] };
+  const platRange = (p,dys) => { const s=(daily&&daily[p])||[]; const cut=dataEnd-dys*864e5; let reach=0,fol=0,leads=0;
+    s.forEach(w=>{ const t=w.d.getTime(); if(t>=cut&&t<=dataEnd){reach+=w.reach;fol+=w.fol;leads+=w.leads;} }); return {reach:Math.round(reach),fol,leads,has:s.length>0}; };
+  // Booked/Closed reflect the same windowed months as the charts (funnel is never-empty).
+  const funnelRange = () => ({ booked:funnel.reduce((s,f)=>s+f.booked,0), shows:funnel.reduce((s,f)=>s+f.shows,0), closed:funnel.reduce((s,f)=>s+f.closed,0) });
+
+  function renderRange(dys){
+    const all = dys>=9999;
+    const rangeLabel = all?'All time' : dys===1?'Last 24 hrs' : `Last ${dys} days`;
+    const end=new Date(dataEnd), start=new Date(dataEnd-dys*864e5);
+    const fmt = d => d.toLocaleDateString('en-US',{month:'short',day:'numeric'});
+    document.querySelectorAll('.range-lbl').forEach(e=>e.textContent = all ? 'All time' : `${fmt(start)} – ${fmt(end)}, 2026`);
+
+    let R=0,F=0;
+    document.getElementById('platformCards').innerHTML = PLATS.map(([p,name,hasFol])=>{
+      const t=platRange(p,dys); let reachStr,folStr,leadStr;
+      if(t.has){ R+=t.reach; F+=t.fol; reachStr=fmtR(t.reach); folStr=hasFol?t.fol.toLocaleString():'—'; leadStr=t.leads; }
+      else { const fb=FBK[p]; reachStr=fb[0]; folStr=fb[1]; leadStr=fb[2]; }
+      return `<div class="plat-card" style="padding:12px"><h3 style="font-size:12px;margin-bottom:6px">${name}</h3>`+
+        `<div class="plat-row"><span class="l">Reach</span><span class="v">${reachStr}</span></div>`+
+        `<div class="plat-row"><span class="l">Follows</span><span class="v">${folStr}</span></div>`+
+        `<div class="plat-row"><span class="l">Leads</span><span class="v">${leadStr}</span></div></div>`;
+    }).join('');
+    if(!allPosts.length){ R=FALLBACK.weeklyReach.reduce((s,v)=>s+v,0); F=FALLBACK.weeklyFollowers.reduce((s,v)=>s+v,0); }  // content fetch failed → never show a bare 0
+
+    const fn=funnelRange(dys);
+    document.getElementById('kpiRow').innerHTML=[
+      {l:'Total Reach',v:fmtR(R),s:rangeLabel+' | All platforms'},
+      {l:'Followers Gained',v:F.toLocaleString(),s:rangeLabel+' | All platforms'},
+      {l:'Booked Calls',v:fn.booked,s:`${fn.shows} showed (${fn.shows&&fn.booked?Math.round(fn.shows/fn.booked*100):0}%)`},
+      {l:'Deals Closed',v:fn.closed,s:`${fn.closed&&fn.shows?Math.round(fn.closed/fn.shows*100):0}% close rate`},
+      {l:'Revenue',v:'$'+totalRev.toLocaleString(),s:`${revDeals.length} paying clients | ${all?'all-time':rangeLabel}`},
+    ].map(k=>`<div class="kpi"><div class="kpi-label">${k.l}</div><div class="kpi-val">${k.v}</div><div class="kpi-sub">${k.s}</div></div>`).join('');
+  }
+  window.updateKPIs = renderRange;   // setRange() → rerender() → render() → renderRange(days)
+  renderRange(days);
+
+  // Charts config helper
+  const gridOpts={color:'#222'};const noGrid={display:false};
+  // Combined chart
+  new Chart(document.getElementById('comboChart'),{type:'bar',data:{labels:months,datasets:[
+    {label:'DMs Sent',data:funnel.map(f=>f.dms),backgroundColor:YELLOW,borderRadius:4},
+    {label:'Warm Leads',data:funnel.map(f=>f.warm),backgroundColor:'#555',borderRadius:4},
+  ]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'bottom',labels:{boxWidth:8,font:{size:10},color:'#999'}}},scales:{x:{grid:noGrid,ticks:{color:'#666'}},y:{grid:gridOpts,ticks:{font:{size:10},color:'#666'}}}}});
+
+  // (Platform cards are rendered by renderRange above so they respond to the 30/60/90 filter.)
+
+  // Funnel tab — DMs Sent over the selected window (from the Data Scraper), bucketed to the range.
+  const scrWin = (liveData.scraper||[]).filter(x=>isAll||inWin(x.d.getTime()));
+  const bmode = isAll ? 'month' : (days<=31 ? 'day' : (days<=120 ? 'week' : 'month'));
+  const dbuck = {};
+  scrWin.forEach(x=>{ let key,lbl;
+    if(bmode==='day'){ const d=new Date(x.d); d.setHours(0,0,0,0); key=d.getTime(); lbl=d.toLocaleDateString('en-US',{month:'short',day:'numeric'}); }
+    else if(bmode==='week'){ const d=new Date(x.d); const dow=(d.getDay()+6)%7; d.setDate(d.getDate()-dow); d.setHours(0,0,0,0); key=d.getTime(); lbl=d.toLocaleDateString('en-US',{month:'short',day:'numeric'}); }
+    else { key=x.d.getFullYear()*12+x.d.getMonth(); lbl=x.d.toLocaleDateString('en-US',{month:'short'}); }
+    if(!dbuck[key]) dbuck[key]={lbl,dms:0}; dbuck[key].dms+=x.dms; });
+  const dkeys=Object.keys(dbuck).map(Number).sort((a,b)=>a-b);
+  const dmsTitle = bmode==='day'?'DMs sent per day' : bmode==='week'?'DMs sent per week (week starting)' : 'DMs sent per month';
+  new Chart(document.getElementById('funnelChart'),{type:'bar',
+    data:{labels:dkeys.map(k=>dbuck[k].lbl),datasets:[{label:'DMs Sent',data:dkeys.map(k=>dbuck[k].dms),backgroundColor:YELLOW,borderRadius:4}]},
+    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},title:{display:true,text:dmsTitle,color:'#666',font:{size:10}}},scales:{x:{grid:noGrid,ticks:{font:{size:9},color:'#666'}},y:{grid:gridOpts,ticks:{font:{size:10},color:'#666'},beginAtZero:true}}}});
+
+  // Funnel summary — aggregated over the selected window (same months as the chart above; falls back to latest month)
+  const fnSrc = funnel.length ? funnel : (funnelAll.length ? [funnelAll[funnelAll.length-1]] : []);
+  const fsum = k => fnSrc.reduce((s,f)=>s+(f[k]||0),0);
+  const aDms=fsum('dms'),aWarm=fsum('warm'),aBooked=fsum('booked'),aShows=fsum('shows'),aClosed=fsum('closed');
+  const fpct=(n,d)=>d?(Math.round(n/d*1000)/10):0;
+  // DMs Sent / Warm Leads come from the dated Data-Scraper tabs → precise for ANY window (booked/shows/closed stay monthly).
+  let vDms=aDms, vWarm=aWarm;
+  if(liveData.scraper){ let dd=0,ww=0; liveData.scraper.forEach(x=>{ if(inWin(x.d.getTime())){dd+=x.dms;ww+=x.warm;} }); vDms=dd; vWarm=ww; }
+  const fvTitle=document.getElementById('funnelVizTitle'); if(fvTitle) fvTitle.textContent='Funnel Summary — '+(isAll?'All time':`Last ${days} Days`);
+  document.getElementById('funnelViz').innerHTML=[
+    {val:vDms.toLocaleString(),lbl:'DMs Sent',rate:''},
+    {val:vWarm.toLocaleString(),lbl:'Warm Leads',rate:fpct(vWarm,vDms)+'%'},
+    {val:aBooked.toLocaleString(),lbl:'Booked',rate:fpct(aBooked,aDms)+'%'},
+    {val:aShows.toLocaleString(),lbl:'Show Ups',rate:fpct(aShows,aBooked)+'%'},
+    {val:aClosed.toLocaleString(),lbl:'Closed',rate:fpct(aClosed,aShows)+'%'},
+  ].map((s,i)=>(i>0?'<span class="funnel-arrow">→</span>':'')+`<div class="funnel-step"><div class="val">${s.val}</div><div class="lbl">${s.lbl}</div><div class="rate">${s.rate}</div></div>`).join('');
+
+  // Call source breakdown — count booked calls by platform from CRM
+  const callsByPlat = {};
+  crm.forEach(c => {
+    if (['Closed','Followup','Follow Up','Booked','Booked Call','Rescheduled'].includes(c.status)) {
+      const p = c.plat === 'IG' ? 'Instagram' : c.plat === 'FB' ? 'Facebook' : c.plat === 'TikTok' ? 'TikTok' : 'Other';
+      callsByPlat[p] = (callsByPlat[p] || 0) + 1;
+    }
+  });
+  const csLabels = Object.keys(callsByPlat);
+  const csData = Object.values(callsByPlat);
+  const csColors = csLabels.map(l => l === 'Instagram' ? YELLOW : l === 'Facebook' ? '#fff' : l === 'TikTok' ? '#666' : '#444');
+
+  new Chart(document.getElementById('callSourceChart'), {
+    type: 'doughnut',
+    data: { labels: csLabels.map((l,i) => `${l} (${csData[i]})`), datasets: [{ data: csData, backgroundColor: csColors, borderColor: '#000', borderWidth: 2 }] },
+    options: { responsive: true, maintainAspectRatio: false, cutout: '60%', plugins: { legend: { position: 'bottom', labels: { boxWidth: 8, font: { size: 10 }, color: '#999' } } } }
+  });
+
+  const totalCalls = csData.reduce((s,v) => s+v, 0);
+  document.getElementById('callSourceTable').innerHTML = '<table><thead><tr><th>Platform</th><th>Calls</th><th>%</th></tr></thead><tbody>' +
+    csLabels.map((l,i) => `<tr><td style="font-weight:700">${l}</td><td style="color:${YELLOW}">${csData[i]}</td><td>${totalCalls ? Math.round(csData[i]/totalCalls*100) : 0}%</td></tr>`).join('') +
+    `<tr style="border-top:1px solid var(--border)"><td style="font-weight:700">Total</td><td style="color:${YELLOW}">${totalCalls}</td><td>100%</td></tr></tbody></table>`;
+
+  // Content tab
+  new Chart(document.getElementById('weeklyReach'),{type:'bar',data:{labels:wk,datasets:[{data:wr,backgroundColor:wr.map(v=>v>100000?YELLOW:'#333')}]},
+    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{y:{ticks:{callback:v=>(v/1000)+'K',font:{size:9},color:'#666'},grid:gridOpts},x:{grid:noGrid,ticks:{font:{size:7},color:'#555'}}}}});
+
+  new Chart(document.getElementById('weeklyFollowers'),{type:'bar',data:{labels:wk,datasets:[
+    {label:'Followers',data:wf,backgroundColor:YELLOW,order:1},{label:'Leads',data:wl,backgroundColor:'#fff',order:0},
+  ]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'bottom',labels:{boxWidth:8,font:{size:10},color:'#999'}}},scales:{x:{stacked:true,grid:noGrid,ticks:{font:{size:7},color:'#555'}},y:{stacked:true,grid:gridOpts,ticks:{font:{size:9},color:'#666'}}}}});
+
+  // (Trial Reel Engine and Story Performance charts removed per request.)
+
+  // ===== Top Formats (Content tab) — top posts across platforms (windowed), clickable titles + Format column =====
+  const allP = daily ? [].concat(daily.ig,daily.fb,daily.tiktok,daily.youtube,daily.linkedin).filter(w=>inWin(w.d.getTime())) : [];
+  const topPosts = allP.filter(w=>w.views>0).sort((a,b)=>b.views-a.views).slice(0,10);
+  document.getElementById('topContent').innerHTML = topPosts.length ? topPosts.map(w=>{
+    let title = (w.hook||w.summary||'').replace(/\s+/g,' ').replace(/^[-–—\s]+/,'').trim();
+    if(!title) title = (w.type||'Post')+' · '+w.d.toLocaleDateString('en-US',{month:'short',day:'numeric'});
+    if(title.length>70) title = title.slice(0,70)+'…';
+    const href = /^https?:\/\//i.test(w.link) ? w.link : (w.link ? 'https://'+w.link.replace(/^\/+/,'') : '');
+    const cell = href ? `<a href="${href}" target="_blank" rel="noopener" style="color:var(--white);text-decoration:none;font-weight:700">${title} ↗</a>` : `<span style="font-weight:700">${title}</span>`;
+    return `<tr><td>${cell}</td><td style="color:${YELLOW}">${w.type||'—'}</td><td>${w.plat}</td><td style="color:${YELLOW}">${Math.round(w.views).toLocaleString()}</td><td>${w.fol}</td><td>${w.leads}</td></tr>`;
+  }).join('') : `<tr><td colspan="6" style="color:#666;padding:14px">No posts in this range</td></tr>`;
+
+  // CRM tab
+  document.getElementById('crmStats').innerHTML=[
+    {v:crm.length,l:'Prospects',c:'c-blue'},{v:crmClosed,l:'Closed',c:'c-green'},
+    {v:crmFollow,l:'Follow Up',c:'c-orange'},{v:crmBounced,l:'Bounced',c:'c-red'},
+  ].map(s=>`<div class="mini"><div class="v ${s.c}">${s.v}</div><div class="l">${s.l}</div></div>`).join('');
+
+  new Chart(document.getElementById('crmDonut'),{type:'doughnut',data:{labels:['Closed','Follow Up','Bounced','Other'],datasets:[{data:[crmClosed,crmFollow,crmBounced,crm.length-crmClosed-crmFollow-crmBounced],backgroundColor:[YELLOW,'#fff','#444','#2D2D2D'],borderColor:'#000',borderWidth:2}]},
+    options:{responsive:true,maintainAspectRatio:false,cutout:'60%',plugins:{legend:{position:'bottom',labels:{boxWidth:8,font:{size:10},color:'#999'}}}}});
+
+  const igC=crm.filter(c=>c.plat==='IG').length,fbC=crm.filter(c=>c.plat==='FB').length,otC=crm.length-igC-fbC;
+  new Chart(document.getElementById('trafficChart'),{type:'doughnut',data:{labels:[`IG (${igC})`,`FB (${fbC})`,`Other (${otC})`],datasets:[{data:[igC,fbC,otC],backgroundColor:[YELLOW,'#fff','#444'],borderColor:'#000',borderWidth:2}]},
+    options:{responsive:true,maintainAspectRatio:false,cutout:'60%',plugins:{legend:{position:'bottom',labels:{boxWidth:8,font:{size:10},color:'#999'}}}}});
+
+  function sCls(s){if(s==='Closed')return's-paid';if(['Followup','Follow Up','Booked','Booked Call'].includes(s))return's-follow';if(s==='Bounced')return's-bounced';if(s==='Rescheduled')return's-pending';return's-bounced'}
+  const nameCell=c=>(c.rec&&/^https?:\/\//i.test(c.rec))?`<a href="${c.rec}" target="_blank" rel="noopener" style="color:var(--white);text-decoration:underline">${c.name} ↗</a>`:c.name;
+  document.getElementById('crmTable').innerHTML=crm.map(c=>`<tr><td style="font-weight:700">${nameCell(c)}</td><td>${c.plat}</td><td><span class="status ${sCls(c.status)}">${c.status}</span></td><td style="color:#666">${c.icp}</td><td>${c.rev}</td></tr>`).join('');
+
+  // Revenue tab — Collected + Paying Clients only (removed Avg Deal / Pipeline / month chart)
+  document.getElementById('revKpis').innerHTML=`
+    <div class="kpi"><div class="kpi-label">Collected</div><div class="kpi-val">$${totalRev.toLocaleString()}</div><div class="kpi-sub">${isAll?'All-time':`Last ${days} days${revByPaid?'':' · by call date'}`}</div></div>
+    <div class="kpi"><div class="kpi-label">Paying Clients</div><div class="kpi-val">${revDeals.length}</div><div class="kpi-sub">Closed &amp; paid</div></div>`;
+
+  document.getElementById('revTable').innerHTML=revDeals.map(d=>`<tr><td style="font-weight:700">${d.name}</td><td>${d.plat}</td><td style="color:${YELLOW};font-weight:700">${d.paying}</td><td><span class="status s-paid">PAID</span></td></tr>`).join('');
+} catch(e) { console.error('Render error:', e); document.getElementById('dataSource').textContent='Render error: '+e.message; }
+}
+
+function showTab(id,el){document.querySelectorAll('.tab-content').forEach(e=>e.classList.remove('active'));document.querySelectorAll('.tab').forEach(e=>e.classList.remove('active'));document.getElementById(id).classList.add('active');el.classList.add('active')}
+
+window._activeRange = 30;
+
+// The same filter bar is injected at the top of every tab and kept in sync.
+const RANGE_BAR = `
+  <button class="range-btn" data-range="7" onclick="setRange(7)">7 DAYS</button>
+  <button class="range-btn" data-range="14" onclick="setRange(14)">14 DAYS</button>
+  <button class="range-btn" data-range="30" onclick="setRange(30)">30 DAYS</button>
+  <button class="range-btn" data-range="60" onclick="setRange(60)">60 DAYS</button>
+  <button class="range-btn" data-range="90" onclick="setRange(90)">90 DAYS</button>
+  <button class="range-btn" data-range="9999" onclick="setRange(9999)">ALL</button>
+  <span class="range-lbl" style="margin-left:auto;font-size:11px;color:var(--gray);letter-spacing:.5px"></span>`;
+function injectRangeBars(){
+  ['overview','funnel','content','crm','revenue'].forEach(id=>{
+    const el=document.getElementById(id); if(!el||el.querySelector('.range-bar')) return;
+    const bar=document.createElement('div'); bar.className='range-bar'; bar.innerHTML=RANGE_BAR;
+    el.insertBefore(bar, el.firstChild);
+  });
+  syncRangeButtons();
+}
+function syncRangeButtons(){ document.querySelectorAll('.range-btn').forEach(b=>b.classList.toggle('active', +b.dataset.range===window._activeRange)); }
+function rerender(){ if(window.Chart) Chart.helpers.each(Chart.instances,c=>c.destroy()); render(); }
+function setRange(days){ window._activeRange = days; syncRangeButtons(); rerender(); }   // re-render every tab for the new window
+
+injectRangeBars();
+loadData();
+
+// ===== AUTO-REFRESH — keeps the dashboard current all month =====
+// Pull fresh data every 2h while open...
+setInterval(tryLiveData, 2*60*60*1000);
+// ...and whenever the tab is brought back into focus (e.g. reopened later).
+document.addEventListener('visibilitychange',()=>{ if(!document.hidden) tryLiveData(); });
+</script>
+</body>
+</html>
